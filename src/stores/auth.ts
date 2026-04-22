@@ -14,30 +14,26 @@ export const useAuthStore = defineStore('auth', {
       if (session) {
         this.user = session.user
         
+        // Prioritize metadata first as it's immediate
+        this.fullName = session.user.user_metadata?.full_name || null
+        this.role = session.user.user_metadata?.role || 'creator'
+
         try {
-          // Timeout de seguridad: Si el perfil tarda más de 3 segundos, usamos metadatos
-          const profilePromise = supabase
+          // Then try to get the most up-to-date info from the database
+          const { data, error } = await supabase
             .from('profiles')
             .select('role, full_name')
             .eq('id', session.user.id)
             .single()
-
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 3000)
-          )
-
-          const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any
           
           if (!error && data) {
-            this.role = data.role
-            this.fullName = data.full_name
-          } else {
-            throw new Error('Profile fetch failed')
+            this.role = data.role || this.role
+            if (data.full_name) {
+              this.fullName = data.full_name
+            }
           }
         } catch (err) {
-          console.warn('Usando fallback de metadatos por lentitud o error en perfiles:', err)
-          this.role = session.user.user_metadata.role || 'creator'
-          this.fullName = session.user.user_metadata.full_name || null
+          console.warn('Error fetching profile from database, using metadata:', err)
         }
       } else {
         this.user = null
@@ -47,23 +43,40 @@ export const useAuthStore = defineStore('auth', {
       this.loading = false
     },
     async initialize() {
-      const { data: { session } } = await supabase.auth.getSession()
-      await this.setUser(session)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        await this.setUser(session)
+      } catch (err) {
+        console.error('Error during auth initialization:', err)
+        this.loading = false
+      }
 
       supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          await this.setUser(session)
-        } else if (event === 'SIGNED_OUT') {
-          this.user = null
-          this.role = null
+        try {
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            await this.setUser(session)
+          } else if (event === 'SIGNED_OUT') {
+            this.user = null
+            this.role = null
+            this.fullName = null
+            this.loading = false
+          }
+        } catch (err) {
+          console.error('Error in onAuthStateChange:', err)
+          this.loading = false
         }
       })
     },
     async signOut() {
-      await supabase.auth.signOut()
-      this.user = null
-      this.role = null
-      this.fullName = null
+      try {
+        await supabase.auth.signOut()
+      } catch (err) {
+        console.error('Error during sign out:', err)
+      } finally {
+        this.user = null
+        this.role = null
+        this.fullName = null
+      }
     }
   }
 })

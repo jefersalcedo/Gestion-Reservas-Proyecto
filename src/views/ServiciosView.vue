@@ -1,11 +1,23 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useServiciosStore } from '../stores/servicios'
 import type { Servicio } from '../services/servicios.service'
 import ServicioForm from '../components/ServicioForm.vue'
 import PreciosServicio from '../components/PreciosServicio.vue'
+import { stripeService } from '../services/stripe.service'
 
+const router = useRouter()
 const store = useServiciosStore()
+
+const handleBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push('/dashboard-admin')
+  }
+}
+const payingId = ref<string | null>(null)
 
 // State for modals
 const showForm = ref(false)
@@ -41,18 +53,35 @@ const refreshData = async () => {
   showForm.value = false
   await store.fetchServicios()
 }
+
+const handlePagar = async (servicio: Servicio) => {
+  try {
+    payingId.value = servicio.id
+    await stripeService.crearCheckout(servicio.id)
+  } catch (error: any) {
+    alert('Error al procesar el pago: ' + error.message)
+  } finally {
+    payingId.value = null
+  }
+}
 </script>
 
 <template>
   <div class="servicios-container">
+    <div class="top-nav">
+      <button @click="handleBack" class="btn-back-link">
+        Regresar
+      </button>
+      <button @click="openCreate" class="btn-create-mini">
+        NUEVO SERVICIO
+      </button>
+    </div>
+
     <header class="view-header">
-      <div>
+      <div class="header-content">
         <h1>Gestión de Servicios</h1>
         <p>Administra los servicios de tu negocio y sus precios.</p>
       </div>
-      <button @click="openCreate" class="btn-create">
-        <span class="icon">+</span> Nuevo Servicio
-      </button>
     </header>
 
     <div v-if="store.loading && !store.servicios.length" class="loading-state">
@@ -96,6 +125,15 @@ const refreshData = async () => {
                 <span class="current-price">${{ (servicio.precio_actual || 0).toFixed(2) }}</span>
               </td>
               <td class="actions-cell">
+                <button 
+                  @click="handlePagar(servicio)" 
+                  class="btn-icon btn-pay" 
+                  title="Pagar servicio"
+                  :disabled="payingId === servicio.id"
+                >
+                  <span v-if="payingId === servicio.id" class="loader-sm"></span>
+                  <span v-else>💳</span>
+                </button>
                 <button @click="openHistory(servicio)" class="btn-icon" title="Historial de precios">
                   📊
                 </button>
@@ -133,59 +171,100 @@ const refreshData = async () => {
 
 <style scoped>
 .servicios-container {
-  padding: 2rem;
-  max-width: 1200px;
+  padding: 4rem 2rem;
+  max-width: 100%;
   margin: 0 auto;
 }
 
-.view-header {
+.top-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
+}
+
+.btn-back-link {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: color 0.3s;
+}
+
+.btn-back-link:hover {
+  color: var(--primary);
+}
+
+.btn-create-mini {
+  background: var(--primary);
+  color: var(--base-black);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-create-mini:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+.view-header {
+  text-align: center;
+  margin-bottom: 5rem;
 }
 
 .view-header h1 {
-  font-size: 2.25rem;
-  font-weight: 800;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 900;
   margin: 0;
-  background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--ivory);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .view-header p {
-  color: #718096;
-  margin: 0.5rem 0 0;
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 300;
 }
 
 .btn-create {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 0.75rem 1.5rem;
+  background-color: var(--primary);
+  color: var(--base-black);
+  padding: 1.25rem 2.5rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 4px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transition: all 0.4s ease;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 
 .btn-create:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+  background-color: var(--primary-hover);
+  transform: translateY(-3px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
 }
 
 .table-card {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  background: var(--charcoal);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #edf2f7;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6);
+  width: 100%;
 }
 
 .data-table {
@@ -194,135 +273,82 @@ const refreshData = async () => {
 }
 
 .data-table th {
-  background: #f8fafc;
-  padding: 1.25rem 1.5rem;
-  text-align: left;
-  font-weight: 700;
-  color: #4a5568;
-  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 1.5rem 2rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #edf2f7;
+  letter-spacing: 0.2em;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
 }
 
 .data-table td {
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #edf2f7;
-  vertical-align: middle;
+  padding: 2rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--ivory);
 }
 
 .servicio-name {
-  font-weight: 700;
-  color: #1a202c;
-  font-size: 1.1rem;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: 1.35rem;
+  color: var(--ivory);
 }
 
 .description-text {
-  color: #718096;
-  font-size: 0.95rem;
-  max-width: 300px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin: 0;
+  color: var(--text-muted);
+  font-weight: 300;
 }
 
 .current-price {
-  font-weight: 800;
-  color: #2c5282;
-  font-size: 1.1rem;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 900;
+  color: var(--primary);
+  font-size: 1.5rem;
 }
 
 .badge {
-  padding: 0.4rem 0.8rem;
-  border-radius: 8px;
-  font-size: 0.75rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0;
   font-weight: 700;
-  display: inline-block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
 }
 
 .badge-active {
-  background: #c6f6d5;
-  color: #22543d;
+  background: rgba(6, 95, 70, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(6, 95, 70, 0.3);
 }
 
 .badge-inactive {
-  background: #fed7d7;
-  color: #822727;
-}
-
-.actions-cell {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
+  background: rgba(127, 29, 29, 0.1);
+  color: var(--error);
+  border: 1px solid rgba(127, 29, 29, 0.3);
 }
 
 .btn-icon {
-  background: #f7fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 1.1rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  border-radius: 4px;
+  padding: 0.75rem;
+  transition: all 0.3s;
 }
 
 .btn-icon:hover {
-  background: #edf2f7;
-  transform: translateY(-2px);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-3px);
 }
 
 .btn-delete:hover {
-  background: #fff5f5;
-  border-color: #feb2b2;
+  border-color: var(--error);
+  color: var(--error);
+  background: rgba(127, 29, 29, 0.05);
 }
 
-.empty-row {
-  padding: 4rem;
-  text-align: center;
-  color: #a0aec0;
-  font-style: italic;
-}
 
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 5rem;
-  color: #718096;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #667eea;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.error-container {
-  text-align: center;
-  padding: 3rem;
-  color: #e53e3e;
-  background: #fff5f5;
-  border-radius: 16px;
-  margin-top: 2rem;
-}
-
-.btn-retry {
-  margin-top: 1rem;
-  padding: 0.5rem 1.5rem;
-  background: #e53e3e;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
 </style>

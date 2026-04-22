@@ -99,11 +99,19 @@ export const serviciosService = {
   },
 
   async addPrecioServicio(servicioId: string, precio: number) {
+    // 1. Desactivar todos los precios anteriores de este servicio
+    await supabase
+      .from('precios_servicios')
+      .update({ estado: false })
+      .eq('servicio_id', servicioId)
+
+    // 2. Insertar el nuevo precio activo
     const { data, error } = await supabase
       .from('precios_servicios')
       .insert([{
         servicio_id: servicioId,
-        precio: precio
+        precio: precio,
+        estado: true
       }])
       .select()
       .single()

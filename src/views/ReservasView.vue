@@ -1,10 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useReservasStore } from '../stores/reservas'
 import type { Reserva } from '../services/reservas.service'
 import ReservaForm from '../components/ReservaForm.vue'
+import { stripeService } from '../services/stripe.service'
 
+const router = useRouter()
 const store = useReservasStore()
+
+const handleBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push('/dashboard-user')
+  }
+}
+const payingId = ref<string | null>(null)
 const showForm = ref(false)
 const selectedReserva = ref<Reserva | null>(null)
 const showCancelled = ref(false)
@@ -41,6 +53,18 @@ const onSaved = async () => {
   await store.fetchReservas()
 }
 
+const handlePagarReserva = async (reserva: Reserva) => {
+  try {
+    payingId.value = reserva.id
+    // Enviamos tanto el ID del servicio como el de la reserva
+    await stripeService.crearCheckout(reserva.servicio_id, reserva.id)
+  } catch (error: any) {
+    alert('Error al procesar el pago: ' + error.message)
+  } finally {
+    payingId.value = null
+  }
+}
+
 const getStatusClass = (estado: string) => {
   switch (estado) {
     case 'confirmada': return 'status-confirmed'
@@ -65,17 +89,23 @@ const formatTime = (timeStr: string) => {
 
 <template>
   <div class="reservas-container">
+    <div class="top-nav">
+      <button @click="handleBack" class="btn-back-link">
+        Regresar
+      </button>
+      <button @click="openCreate" class="btn-new-mini">
+        NUEVA RESERVA
+      </button>
+    </div>
+
     <header class="page-header">
-      <div>
+      <div class="header-content">
         <h1>Mis Reservas</h1>
         <p>Gestiona tus citas y servicios programados.</p>
         <button @click="showCancelled = !showCancelled" class="btn-history">
-          {{ showCancelled ? '🙈 Ocultar canceladas' : '📂 Ver historial / canceladas' }}
+          {{ showCancelled ? 'Ocultar canceladas' : 'Ver historial / canceladas' }}
         </button>
       </div>
-      <button @click="openCreate" class="btn-new">
-        <span>+</span> Nueva Reserva
-      </button>
     </header>
 
     <div v-if="store.loading && !store.reservas.length" class="loading-state">
@@ -92,9 +122,9 @@ const formatTime = (timeStr: string) => {
       <div v-for="reserva in filteredReservas" :key="reserva.id" class="reserva-card" :class="{ 'card-cancelled': reserva.estado === 'cancelada' }">
         <div class="card-header">
           <span :class="['status-badge', getStatusClass(reserva.estado)]">
-            {{ reserva.estado.toUpperCase() }}
+            {{ reserva.estado === 'pendiente' ? 'PENDIENTE DE PAGO' : reserva.estado.toUpperCase() }}
           </span>
-          <span class="reserva-date">{{ formatDate(reserva.fecha) }}</span>
+          <div class="reserva-date">{{ formatDate(reserva.fecha) }}</div>
         </div>
         
         <div class="card-body">
@@ -106,12 +136,24 @@ const formatTime = (timeStr: string) => {
         </div>
 
         <div class="card-footer" v-if="reserva.estado !== 'cancelada'">
-          <button @click="openEdit(reserva)" class="btn-action btn-edit">
-            Editar
+          <button 
+            v-if="reserva.estado === 'pendiente'" 
+            @click="handlePagarReserva(reserva)" 
+            class="btn-action btn-pay full-width"
+            :disabled="payingId === reserva.id"
+          >
+            <span v-if="payingId === reserva.id" class="loader-sm"></span>
+            <span v-else>Pagar Reserva</span>
           </button>
-          <button @click="handleCancel(reserva.id)" class="btn-action btn-cancel">
-            Cancelar
-          </button>
+          
+          <div class="footer-actions">
+            <button @click="openEdit(reserva)" class="btn-action btn-edit">
+              Editar
+            </button>
+            <button @click="handleCancel(reserva.id)" class="btn-action btn-cancel">
+              Cancelar
+            </button>
+          </div>
         </div>
         <div class="card-footer disabled" v-else>
           <p class="cancelled-msg">Esta reserva ha sido cancelada.</p>
@@ -137,222 +179,237 @@ const formatTime = (timeStr: string) => {
 
 <style scoped>
 .reservas-container {
-  padding: 2rem;
-  max-width: 1100px;
+  padding: 4rem 2rem;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
-.page-header {
+.top-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
+}
+
+.btn-back-link {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: color 0.3s;
+}
+
+.btn-back-link:hover {
+  color: var(--primary);
+}
+
+.btn-new-mini {
+  background: var(--primary);
+  color: var(--base-black);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-new-mini:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 5rem;
 }
 
 .page-header h1 {
+  font-family: 'Montserrat', sans-serif;
   font-size: 2.5rem;
-  font-weight: 800;
+  font-weight: 900;
   margin: 0;
-  color: #0f172a;
-  letter-spacing: -0.05em;
+  color: var(--ivory);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .page-header p {
-  color: #64748b;
-  margin: 0.5rem 0 1rem;
+  color: var(--text-muted);
+  margin-bottom: 2rem;
   font-size: 1.1rem;
+  font-weight: 300;
 }
 
 .btn-history {
   background: transparent;
-  border: 1px solid #e2e8f0;
-  color: #6366f1;
-  padding: 0.4rem 0.8rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  border: 1px solid var(--border);
+  color: var(--primary);
+  padding: 0.6rem 1.25rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .btn-history:hover {
-  background: #f1f5f9;
-  border-color: #6366f1;
-}
-
-.card-cancelled {
-  opacity: 0.6;
-  filter: grayscale(0.5);
-  border-style: dashed;
+  background: rgba(212, 175, 55, 0.05);
+  border-color: var(--primary-hover);
+  color: var(--primary-hover);
 }
 
 .btn-new {
-  background: #6366f1;
-  color: white;
-  padding: 0.875rem 1.75rem;
+  background-color: var(--primary);
+  color: var(--base-black);
+  padding: 1.25rem 2.5rem;
   border: none;
-  border-radius: 16px;
+  border-radius: 4px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+  transition: all 0.4s ease;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 
 .btn-new:hover {
-  background: #4f46e5;
-  transform: translateY(-2px);
-  box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.4);
+  background-color: var(--primary-hover);
+  transform: translateY(-3px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
 }
 
 .reservas-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 3rem;
 }
 
 .reserva-card {
-  background: white;
-  border-radius: 24px;
-  padding: 1.5rem;
-  border: 1px solid #f1f5f9;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+  background: var(--charcoal);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3rem;
+  transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
   display: flex;
   flex-direction: column;
 }
 
 .reserva-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  border-color: #e2e8f0;
+  transform: translateY(-12px);
+  border-color: var(--primary);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
 }
 
 .card-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.25rem;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
 .status-badge {
-  padding: 0.35rem 0.75rem;
-  border-radius: 10px;
-  font-size: 0.75rem;
+  padding: 0.4rem 1rem;
+  border-radius: 0;
+  font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  display: inline-block;
+  width: fit-content;
 }
-
-.status-pending { background: #fef3c7; color: #92400e; }
-.status-confirmed { background: #dcfce7; color: #166534; }
-.status-cancelled { background: #fee2e2; color: #991b1b; }
 
 .reserva-date {
+  color: var(--text-muted);
   font-size: 0.85rem;
-  color: #64748b;
-  font-weight: 600;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: capitalize;
 }
 
+.status-pending { background: rgba(212, 175, 55, 0.1); color: var(--primary); border: 1px solid rgba(212, 175, 55, 0.3); }
+.status-confirmed { background: rgba(6, 95, 70, 0.1); color: var(--success); border: 1px solid rgba(6, 95, 70, 0.3); }
+.status-cancelled { background: rgba(127, 29, 29, 0.1); color: var(--error); border: 1px solid rgba(127, 29, 29, 0.3); }
+
 .servicio-name {
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #1e293b;
+  font-family: 'Montserrat', sans-serif;
+  color: var(--ivory);
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
 }
 
 .reserva-time {
-  margin-top: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #475569;
-  font-weight: 600;
+  color: var(--text-muted);
+  font-weight: 300;
+  letter-spacing: 0.05em;
 }
 
 .card-footer {
-  margin-top: 1.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid #f1f5f9;
+  margin-top: auto;
   display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.footer-actions {
+  display: flex;
+  justify-content: space-between;
   gap: 1rem;
 }
 
 .btn-action {
-  flex: 1;
-  padding: 0.75rem;
-  border-radius: 12px;
+  border-radius: 4px;
   font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.8rem 1.5rem;
+  font-size: 0.8rem;
+  flex: 1;
 }
 
-.btn-edit {
-  background: #f8fafc;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-}
-
-.btn-edit:hover {
-  background: #f1f5f9;
-  color: #1e293b;
-}
-
-.btn-cancel {
-  background: white;
-  color: #e11d48;
-  border: 1px solid #fecdd3;
-}
-
-.btn-cancel:hover {
-  background: #fff1f2;
-}
-
-.cancelled-msg {
-  color: #94a3b8;
-  font-style: italic;
-  font-size: 0.9rem;
-  text-align: center;
+.btn-pay.full-width {
   width: 100%;
 }
 
-.empty-state {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 5rem 2rem;
-  background: #f8fafc;
-  border-radius: 32px;
-  border: 2px dashed #e2e8f0;
+.btn-pay {
+  background: var(--primary);
+  color: var(--base-black);
+  border: none;
 }
 
-.empty-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+.btn-pay:hover:not(:disabled) {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
 }
 
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 5rem;
+.btn-edit {
+  background: transparent;
+  color: var(--ivory);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #6366f1;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1.5rem;
+.btn-edit:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.btn-cancel {
+  background: transparent;
+  color: var(--error);
+  border: 1px solid rgba(127, 29, 29, 0.3);
 }
 
-.mt-4 { margin-top: 1rem; }
+.btn-cancel:hover {
+  background: rgba(127, 29, 29, 0.05);
+}
+
+
 </style>

@@ -80,7 +80,7 @@ const handleSubmit = async () => {
             id="nombre" 
             v-model="form.nombre" 
             type="text" 
-            placeholder="Ej. Corte de Cabello"
+            placeholder="Ingrese el nombre"
             required
           >
         </div>
@@ -135,38 +135,47 @@ const handleSubmit = async () => {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 2rem;
 }
 
 .modal-content {
-  background: white;
-  padding: 2rem;
-  border-radius: 16px;
+  background: var(--charcoal);
+  padding: 3rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
   width: 100%;
   max-width: 500px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2.5rem;
 }
 
 .modal-header h2 {
   margin: 0;
-  color: #1a202c;
-  font-size: 1.5rem;
+  color: var(--ivory);
+  font-size: 1.25rem;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .close-btn {
@@ -174,8 +183,12 @@ const handleSubmit = async () => {
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #a0aec0;
-  transition: color 0.2s;
+  color: var(--text-muted);
+  transition: color 0.3s;
+}
+
+.close-btn:hover {
+  color: var(--wine);
 }
 
 .close-btn:hover {
@@ -195,26 +208,31 @@ const handleSubmit = async () => {
 }
 
 .form-group label {
-  font-weight: 600;
-  color: #4a5568;
-  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 input[type="text"],
 input[type="number"],
 textarea {
-  padding: 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  background: var(--base-black);
+  border: 1px solid var(--border);
+  padding: 1rem;
+  color: var(--ivory);
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
   font-size: 1rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.3s ease;
 }
 
 input:focus,
 textarea:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
 }
 
 .checkbox-group {
@@ -231,44 +249,55 @@ textarea:focus {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 0.75rem 1.5rem;
+  background: var(--primary);
+  color: var(--base-black);
+  padding: 1rem 2rem;
   border: none;
-  border-radius: 8px;
-  font-weight: 600;
+  border-radius: 4px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all 0.3s ease;
 }
 
 .btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
 }
 
 .btn-primary:disabled {
-  opacity: 0.7;
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
 .btn-secondary {
-  background: #f7fafc;
-  color: #4a5568;
-  padding: 0.75rem 1.5rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-weight: 600;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 1rem 2rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  border-color: var(--ivory);
+  color: var(--ivory);
 }
 
 .error-message {
-  color: #e53e3e;
-  background: #fff5f5;
-  padding: 0.75rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  border: 1px solid #feb2b2;
+  color: var(--error);
+  background: rgba(127, 29, 29, 0.1);
+  padding: 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  border: 1px solid var(--error);
+  text-align: center;
 }
 
 /* Switch Styles */

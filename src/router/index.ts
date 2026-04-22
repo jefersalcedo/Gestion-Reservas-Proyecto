@@ -9,6 +9,8 @@ import ServiciosView from '../views/ServiciosView.vue'
 import ReservasView from '../views/ReservasView.vue'
 
 import ClientesView from '../views/ClientesView.vue'
+import SuccessView from '../views/SuccessView.vue'
+import ReportsView from '../views/ReportsView.vue'
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -24,6 +26,12 @@ const routes = [
     path: '/mis-reservas', 
     name: 'MisReservas', 
     component: ReservasView, 
+    meta: { requiresAuth: true, role: 'creator' } 
+  },
+  { 
+    path: '/success', 
+    name: 'Success', 
+    component: SuccessView, 
     meta: { requiresAuth: true, role: 'creator' } 
   },
   { 
@@ -44,6 +52,12 @@ const routes = [
     component: ClientesView, 
     meta: { requiresAuth: true, role: 'admin' } 
   },
+  { 
+    path: '/reportes', 
+    name: 'Reportes', 
+    component: ReportsView, 
+    meta: { requiresAuth: true, role: 'admin' } 
+  },
 ]
 
 const router = createRouter({
@@ -51,46 +65,52 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach(async (to, _from, next) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
   
-  // Esperar a que el store termine de inicializarse si todavía está cargando
+  // Esperar a que el store termine de inicializarse con un timeout de seguridad
   if (authStore.loading) {
-    await new Promise<void>((resolve) => {
-      const stopWatch = watch(
-        () => authStore.loading,
-        (isLoading) => {
-          if (!isLoading) {
-            stopWatch();
-            resolve();
-          }
-        },
-        { immediate: true }
-      );
-    });
+    await Promise.race([
+      new Promise<void>((resolve) => {
+        const stopWatch = watch(
+          () => authStore.loading,
+          (isLoading) => {
+            if (!isLoading) {
+              stopWatch();
+              resolve();
+            }
+          },
+          { immediate: true }
+        );
+      }),
+      new Promise<void>((resolve) => setTimeout(resolve, 3000))
+    ]);
   }
 
   const isAuthenticated = !!authStore.user
   const userRole = authStore.role
 
+  // 1. Si requiere autenticación y no está logueado -> Login
   if (to.meta.requiresAuth && !isAuthenticated) {
-    return next('/login')
+    return { name: 'Login' }
   }
 
+  // 2. Si es para invitados (login/register) y ya está logueado -> Dashboard correspondiente
   if (to.meta.guest && isAuthenticated) {
-    const target = userRole === 'admin' ? '/dashboard-admin' : '/dashboard-user'
-    return to.path === target ? next() : next(target)
+    return userRole === 'admin' ? { name: 'AdminDashboard' } : { name: 'UserDashboard' }
   }
 
+  // 3. Verificación de roles (si el usuario está autenticado pero no tiene el rol correcto)
   if (to.meta.role && to.meta.role !== userRole) {
-    let target = '/login'
-    if (userRole === 'admin') target = '/dashboard-admin'
-    else if (userRole === 'creator') target = '/dashboard-user'
+    // Evitar bucles: Si ya estamos yendo al destino correcto, permitirlo
+    const targetName = userRole === 'admin' ? 'AdminDashboard' : 'UserDashboard'
+    if (to.name === targetName) return true
     
-    return to.path === target ? next() : next(target)
+    return { name: targetName }
   }
 
-  next()
+  // Permitir la navegación
+  return true
 })
 
 export default router

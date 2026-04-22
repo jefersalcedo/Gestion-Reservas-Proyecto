@@ -9,8 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.99.3",
+    "@supabase/supabase-js": "^2.103.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "micro": "^10.0.1",
     "pinia": "^3.0.4",
+    "stripe": "^22.0.1",
     "vue": "^3.5.30",
     "vue-router": "^5.0.4"
   },

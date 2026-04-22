@@ -143,8 +143,8 @@ const handleSubmit = async () => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -152,17 +152,18 @@ const handleSubmit = async () => {
 }
 
 .modal-content {
-  background: white;
-  padding: 2.5rem;
-  border-radius: 24px;
+  background: var(--base-black);
+  padding: 4rem;
+  border-radius: 8px;
   width: 100%;
-  max-width: 550px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: modal-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 650px;
+  border: 1px solid var(--border);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+  animation: modal-in 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
 @keyframes modal-in {
-  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
@@ -170,122 +171,123 @@ const handleSubmit = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 3.5rem;
 }
 
 .modal-header h2 {
+  font-family: 'Montserrat', sans-serif;
   margin: 0;
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: #1e293b;
-  letter-spacing: -0.025em;
+  font-size: 2.25rem;
+  font-weight: 900;
+  color: var(--ivory);
 }
 
 .close-btn {
-  background: #f1f5f9;
-  border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 44px;
+  height: 44px;
+  border-radius: 4px;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #64748b;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .close-btn:hover {
-  background: #e2e8f0;
-  color: #1e293b;
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .reserva-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2.5rem;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
 .form-row {
   display: flex;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 .flex-1 { flex: 1; }
 
 label {
+  font-size: 0.75rem;
   font-weight: 700;
-  color: #475569;
-  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
 }
 
 select, input {
-  padding: 0.875rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  padding: 1.25rem;
+  background: var(--charcoal);
+  border: 1px solid var(--border);
+  border-radius: 4px;
   font-size: 1rem;
-  color: #1e293b;
-  transition: all 0.2s;
+  color: var(--ivory);
+  transition: all 0.3s;
+  font-family: 'Montserrat', sans-serif;
 }
 
 select:focus, input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
 }
 
 .error-message {
-  background: #fff1f2;
-  color: #e11d48;
-  padding: 1rem;
-  border-radius: 12px;
+  background: rgba(127, 29, 29, 0.1);
+  color: var(--error);
+  padding: 1.25rem;
+  border-radius: 4px;
   font-size: 0.9rem;
   font-weight: 600;
-  border: 1px solid #fecdd3;
+  border: 1px solid rgba(127, 29, 29, 0.3);
+  text-align: center;
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 1.5rem;
+  margin-top: 2rem;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  color: white;
-  padding: 1rem 2rem;
-  border: none;
-  border-radius: 12px;
+  background-color: var(--primary);
+  color: var(--base-black);
+  padding: 1.25rem 2.5rem;
+  border-radius: 4px;
   font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  border: none;
 }
 
 .btn-secondary {
-  background: #f8fafc;
-  color: #64748b;
-  padding: 1rem 2rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 1.25rem 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .btn-secondary:hover {
-  background: #f1f5f9;
+  border-color: var(--primary);
+  color: var(--primary);
 }
+
 </style>

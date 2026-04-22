@@ -74,7 +74,7 @@ const formatDate = (dateStr: string) => {
               class="btn-primary" 
               :disabled="loading || newPrecio <= 0"
             >
-              {{ loading ? '...' : 'Agregar' }}
+              {{ loading ? 'Cargando' : 'Agregar' }}
             </button>
           </div>
         </div>
@@ -96,7 +96,7 @@ const formatDate = (dateStr: string) => {
               <td>{{ formatDate(precio.created_at) }}</td>
               <td>
                 <span :class="['badge', precio.estado ? 'badge-active' : 'badge-inactive']">
-                  {{ precio.estado ? 'Vigente' : 'Inactivo' }}
+                  {{ precio.estado ? 'Vigente' : 'Anterior' }}
                 </span>
               </td>
             </tr>
@@ -117,140 +117,191 @@ const formatDate = (dateStr: string) => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 2rem;
 }
 
 .modal-content {
-  background: white;
-  padding: 2rem;
-  border-radius: 16px;
+  background: var(--charcoal);
+  padding: 3rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
   width: 100%;
-  max-width: 600px;
-  max-height: 80vh;
+  max-width: 700px;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2.5rem;
 }
 
 .modal-header h2 {
   margin: 0;
-  color: #1a202c;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 900;
+  color: var(--ivory);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   font-size: 1.5rem;
 }
 
 .service-name {
-  color: #718096;
-  margin: 0.25rem 0 0;
-  font-weight: 500;
+  color: var(--primary);
+  margin: 0.5rem 0 0;
+  font-weight: 600;
+  font-size: 1.1rem;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .close-btn {
-  background: none;
-  border: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  color: var(--text-muted);
   font-size: 1.5rem;
   cursor: pointer;
-  color: #a0aec0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.close-btn:hover {
+  background: var(--wine);
+  border-color: var(--wine);
+  color: white;
 }
 
 .add-price-section {
-  background: #f7fafc;
-  padding: 1.25rem;
-  border-radius: 12px;
-  margin-bottom: 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 2rem;
+  border-radius: 4px;
+  margin-bottom: 2.5rem;
+  border: 1px solid var(--border);
 }
 
 .input-with-button {
   display: flex;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 .input-with-button input {
   flex: 1;
-  padding: 0.6rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  background: var(--base-black);
+  border: 1px solid var(--border);
+  padding: 1rem;
+  color: var(--ivory);
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 0.6rem 1.25rem;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
+  padding: 0.75rem 2rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  font-size: 0.8rem;
 }
 
 .error-text {
-  color: #e53e3e;
+  color: var(--wine);
   font-size: 0.85rem;
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
+  font-weight: 500;
 }
 
 .history-table-container {
   overflow-y: auto;
   flex: 1;
+  margin-right: -1rem;
+  padding-right: 1rem;
 }
+
+/* Scrollbar styling */
+.history-table-container::-webkit-scrollbar { width: 4px; }
+.history-table-container::-webkit-scrollbar-track { background: transparent; }
+.history-table-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
 .history-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0 0.75rem;
 }
 
 .history-table th {
   text-align: left;
-  padding: 0.75rem;
-  border-bottom: 2px solid #edf2f7;
-  color: #4a5568;
-  font-size: 0.85rem;
+  padding: 0 1rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.15em;
+  font-weight: 700;
 }
 
 .history-table td {
-  padding: 1rem 0.75rem;
-  border-bottom: 1px solid #edf2f7;
-  color: #2d3748;
+  padding: 1.25rem 1rem;
+  background: rgba(255, 255, 255, 0.01);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  color: var(--ivory);
+  font-size: 0.9rem;
 }
 
+.history-table tr td:first-child { border-left: 1px solid var(--border); border-radius: 4px 0 0 4px; }
+.history-table tr td:last-child { border-right: 1px solid var(--border); border-radius: 0 4px 4px 0; }
+
 .price-cell {
-  font-weight: 700;
-  color: #2b6cb0;
+  font-weight: 800;
+  color: var(--primary);
+  font-size: 1.1rem;
 }
 
 .badge {
-  padding: 0.25rem 0.6rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 0.4rem 1rem;
+  border-radius: 2px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .badge-active {
-  background: #c6f6d5;
-  color: #22543d;
+  background: rgba(6, 95, 70, 0.15);
+  color: var(--success);
+  border: 1px solid var(--success);
 }
 
 .badge-inactive {
-  background: #fed7d7;
-  color: #822727;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
 }
 
 .empty-state {
   text-align: center;
-  padding: 2rem;
-  color: #a0aec0;
+  padding: 3rem;
+  color: var(--text-muted);
+  font-style: italic;
 }
 </style>

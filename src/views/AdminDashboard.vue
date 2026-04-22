@@ -3,9 +3,11 @@ import { ref, onMounted } from 'vue'
 import { supabase } from '../services/supabase'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
+import ProfileSettings from '../components/ProfileSettings.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const showSettings = ref(false)
 
 const totalUsers = ref(0)
 const activeReservations = ref(0)
@@ -26,23 +28,27 @@ const fetchStats = async () => {
     // Fetch total users (profiles)
     try {
       const { count: usersCount, error: usersError } = await withTimeout(
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        3000
+        supabase.from('profiles').select('*', { count: 'exact' }),
+        5000
       ) as any;
-      if (!usersError) totalUsers.value = usersCount || 0
+      if (usersError) throw usersError
+      totalUsers.value = usersCount || 0
     } catch (e) {
-      console.warn('Error/Timeout fetching users count:', e)
+      console.warn('Error fetching users count:', e)
     }
 
-    // Fetch active reservations (not cancelled)
+    // Fetch active reservations (pendientes + confirmadas)
     try {
-      const { count: reservationsCount, error: reservationsError } = await withTimeout(
-        supabase.from('reservas').select('*', { count: 'exact', head: true }).neq('estado', 'cancelada'),
-        3000
+      const { data: resData, error: reservationsError } = await withTimeout(
+        supabase.from('reservas').select('id, estado').neq('estado', 'cancelada'),
+        5000
       ) as any;
-      if (!reservationsError) activeReservations.value = reservationsCount || 0
-    } catch (e) {
-      console.warn('Error/Timeout fetching reservations count:', e)
+      if (reservationsError) throw reservationsError
+      activeReservations.value = resData?.length || 0
+    } catch (e: any) {
+      console.error('Error fetching reservations count. Details:', e)
+      // Log more details if it's a Supabase error
+      if (e.code) console.error('Error Code:', e.code, 'Message:', e.message)
     }
   } catch (error) {
     console.error('Error fetching dashboard stats:', error)
@@ -52,6 +58,7 @@ const fetchStats = async () => {
 }
 
 onMounted(() => {
+  console.log('Admin Dashboard Mounted - User Role:', authStore.role)
   fetchStats()
 })
 
@@ -64,7 +71,7 @@ const handleLogout = async () => {
 <template>
   <div class="dashboard-container admin-theme">
     <nav class="navbar">
-      <div class="logo">Reservent <span>Admin</span></div>
+      <div class="logo">Reservent</div>
       <div class="nav-links">
         <router-link to="/servicios" class="nav-btn">Servicios</router-link>
         <router-link to="/clientes" class="nav-btn">Clientes</router-link>
@@ -75,8 +82,8 @@ const handleLogout = async () => {
     <main class="content">
       <div class="welcome-card">
         <div class="badge">Admin Access</div>
-        <h1>¡Hola, {{ authStore.fullName || authStore.user?.email }}!</h1>
-        <p>Gestiona usuarios, roles y configuraciones críticas del sistema desde tu panel central.</p>
+        <h1>¡Hola, <span class="highlight">{{ authStore.fullName || 'Usuario' }}</span>!</h1>
+        <p>Gestiona usuarios y roles desde tu panel central.</p>
         
         <div class="stats-grid">
           <div class="stat-card">
@@ -98,181 +105,244 @@ const handleLogout = async () => {
           <div class="actions-grid">
             <button class="action-btn" @click="router.push('/servicios')">Gestionar Servicios</button>
             <button class="action-btn" @click="router.push('/clientes')">Gestionar Clientes</button>
-            <button class="action-btn">Reportes Globales</button>
-            <button class="action-btn btn-warning" @click="router.push('/configuracion')">Configuración Avanzada</button>
+            <button class="action-btn" @click="router.push('/reportes')">Reportes</button>
+            <button class="action-btn" @click="showSettings = true">Configuración de Perfil</button>
           </div>
         </div>
       </div>
     </main>
+
+    <ProfileSettings 
+      v-if="showSettings" 
+      @close="showSettings = false" 
+      @updated="showSettings = false"
+    />
   </div>
 </template>
 
 <style scoped>
 .dashboard-container {
   min-height: 100vh;
-  background: #020617;
-  color: white;
+  background: var(--background);
+  color: var(--text-main);
+  font-family: 'Montserrat', sans-serif;
 }
 
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2.5rem;
-  background: rgba(15, 23, 42, 0.9);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+  padding: 1.5rem 4rem;
+  background: rgba(11, 11, 12, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .logo {
+  font-family: 'Montserrat', sans-serif;
   font-size: 1.75rem;
   font-weight: 900;
-  letter-spacing: -0.025em;
-  background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  letter-spacing: 0.05em;
+  color: var(--primary);
 }
 
 .logo span {
-  font-size: 0.75rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.65rem;
   text-transform: uppercase;
-  background: rgba(99, 102, 241, 0.2);
-  color: #818cf8;
-  -webkit-text-fill-color: #818cf8;
-  padding: 0.25rem 0.6rem;
-  border-radius: 9999px;
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--primary);
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
   margin-left: 0.75rem;
-  vertical-align: middle;
+  letter-spacing: 0.2em;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
 }
 
 .nav-btn {
-  color: #94a3b8;
+  color: var(--text-muted);
   text-decoration: none;
   font-weight: 500;
-  margin-right: 1.5rem;
-  transition: color 0.2s;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: all 0.3s;
 }
 
 .nav-btn:hover {
-  color: #818cf8;
+  color: var(--primary);
 }
 
 .logout-btn {
   background: transparent;
-  color: #94a3b8;
-  border: 1px solid #334155;
-  padding: 0.5rem 1.25rem;
-  border-radius: 0.75rem;
-  font-weight: 500;
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.6rem 1.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .logout-btn:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: var(--error);
+  color: var(--error);
+  background: rgba(127, 29, 29, 0.05);
 }
 
 .content {
-  padding: 3rem;
-  max-width: 1200px;
+  padding: 5rem 2rem;
+  max-width: 1100px;
   margin: 0 auto;
+  text-align: center;
+}
+
+.welcome-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 4rem;
 }
 
 .badge {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
-  background: rgba(168, 85, 247, 0.1);
-  color: #a855f7;
-  border-radius: 2rem;
-  font-size: 0.75rem;
+  padding: 0.5rem 1.25rem;
+  background: rgba(212, 175, 55, 0.05);
+  color: var(--primary);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  font-size: 0.7rem;
   font-weight: 700;
-  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  margin-bottom: 2rem;
+}
+
+.highlight {
+  color: var(--primary);
 }
 
 h1 {
-  font-size: 3.5rem;
-  font-weight: 800;
-  margin-bottom: 0.5rem;
-  letter-spacing: -0.05em;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 2.75rem;
+  font-weight: 900;
+  margin-bottom: 1rem;
+  line-height: 1.2;
 }
 
 p {
-  color: #64748b;
-  font-size: 1.125rem;
-  margin-bottom: 3rem;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin: 0 auto 3.5rem;
+  font-weight: 300;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 2rem;
-  margin-bottom: 4rem;
+  margin: 0 auto 5rem;
+  max-width: 900px;
 }
 
 .stat-card {
   padding: 2rem;
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  border-radius: 1.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  transition: all 0.4s ease;
+}
+
+.stat-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
 }
 
 .stat-label {
-  color: #94a3b8;
-  font-size: 0.875rem;
-  margin-bottom: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 1rem;
 }
 
 .stat-value {
+  font-family: 'Montserrat', sans-serif;
   font-size: 2.5rem;
-  font-weight: 700;
+  font-weight: 800;
+  color: var(--ivory);
 }
 
 .status-ok {
-  color: #10b981;
+  color: var(--success);
 }
 
 .admin-actions {
-  text-align: left;
+  margin-top: 4rem;
 }
 
 h3 {
-  margin-bottom: 1.5rem;
-  font-size: 1.25rem;
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 .actions-grid {
   display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: nowrap;
+  margin-top: 2rem;
 }
 
 .action-btn {
   padding: 1rem 2rem;
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: white;
-  border-radius: 1rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--primary);
+  border-radius: 4px;
+  font-size: 0.85rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .action-btn:hover {
-  background: #334155;
-  transform: translateY(-2px);
+  background: var(--primary);
+  color: var(--base-black);
+  border-color: var(--primary);
+  transform: translateY(-3px);
 }
 
 .btn-warning {
-  border-color: #f59e0b;
-  color: #f59e0b;
+  border-color: var(--error);
+  color: var(--error);
 }
 
 .btn-warning:hover {
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--error);
+  color: var(--ivory);
+  border-color: var(--error);
 }
+
+
 </style>
