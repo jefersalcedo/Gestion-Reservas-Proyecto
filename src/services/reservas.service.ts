@@ -131,11 +131,16 @@ export const reservasService = {
       .single()
 
     // 3. Disparar notificación a n8n
-    // Construimos el objeto con el formato solicitado
+    // Aseguramos que el teléfono tenga el formato '+' para WhatsApp
+    let phone = profile?.phone || ''
+    if (phone && !phone.startsWith('+')) {
+      phone = '+' + phone
+    }
+
     triggerN8N({
       accion: 'crear',
       nombre: profile?.full_name || user.email?.split('@')[0] || 'Cliente',
-      telefono: profile?.phone || '',
+      telefono: phone,
       correo: user.email,
       servicio: data.servicios?.nombre || 'Servicio General',
       fecha: data.fecha,
@@ -188,10 +193,15 @@ export const reservasService = {
       .single()
 
     // Disparar notificación de edición a n8n
+    let phone = profile?.phone || ''
+    if (phone && !phone.startsWith('+')) {
+      phone = '+' + phone
+    }
+
     triggerN8N({
       accion: 'editar',
       nombre: profile?.full_name || user.email?.split('@')[0] || 'Cliente',
-      telefono: profile?.phone || '',
+      telefono: phone,
       correo: user.email,
       servicio: data.servicios?.nombre || 'Servicio General',
       fecha: data.fecha,
@@ -232,10 +242,15 @@ export const reservasService = {
       .single()
 
     // Disparar notificación de cancelación a n8n
+    let phone = profile?.phone || ''
+    if (phone && !phone.startsWith('+')) {
+      phone = '+' + phone
+    }
+
     triggerN8N({
       accion: 'cancelar',
       nombre: profile?.full_name || user.email?.split('@')[0] || 'Cliente',
-      telefono: profile?.phone || '',
+      telefono: phone,
       correo: user.email,
       servicio: data.servicios?.nombre || 'Servicio General',
       fecha: data.fecha,

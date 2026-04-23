@@ -27,6 +27,12 @@ const handleRegister = async () => {
   loading.value = true
   error.value = ''
   
+  // Sanitizar teléfono: asegurar que tenga el '+'
+  let sanitizedPhone = phone.value.trim()
+  if (sanitizedPhone && !sanitizedPhone.startsWith('+')) {
+    sanitizedPhone = '+' + sanitizedPhone
+  }
+
   // 1. Registro en Supabase Auth con Metadata
   const { data, error: registerError } = await supabase.auth.signUp({
     email: email.value,
@@ -34,7 +40,7 @@ const handleRegister = async () => {
     options: {
       data: {
         full_name: fullName.value,
-        phone: phone.value,
+        phone: sanitizedPhone,
         role: 'creator' // Cambiado a 'creator' para cumplir con la constraint de la DB
       }
     }
@@ -55,7 +61,7 @@ const handleRegister = async () => {
         .from('profiles')
         .update({
           full_name: fullName.value,
-          phone: phone.value,
+          phone: sanitizedPhone,
           email: email.value,
           // Cambiado a 'creator' para cumplir con la constraint de la DB
           role: 'creator' 
