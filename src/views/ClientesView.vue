@@ -282,12 +282,17 @@ async function openDetailModal(cliente: Cliente) {
 
     if (resError) throw resError
 
-    // Intentar traer los pagos por separado para evitar el error de relación
-    const { data: pagosData } = await supabase
-      .from('pagos')
-      .select('reserva_id, monto')
-      .eq('estado', 'completado')
-      .in('reserva_id', resData.map(r => r.id))
+    let pagosData: any[] | null = []
+    
+    // Solo buscamos pagos si hay reservas para evitar el error 400 de Supabase (Bad Request)
+    if (resData && resData.length > 0) {
+      const { data } = await supabase
+        .from('pagos')
+        .select('reserva_id, monto')
+        .eq('estado', 'completado')
+        .in('reserva_id', resData.map(r => r.id))
+      pagosData = data
+    }
 
     // Unir manualmente
     clientHistory.value = resData.map(res => ({

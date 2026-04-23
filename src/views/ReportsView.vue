@@ -36,13 +36,18 @@ const fetchReports = async () => {
       .order('fecha', { ascending: false })
 
     if (fetchError) throw fetchError
+    
+    let pagosData: any[] | null = []
 
-    // Traer los pagos por separado
-    const { data: pagosData } = await supabase
-      .from('pagos')
-      .select('reserva_id, monto')
-      .eq('estado', 'completado')
-      .in('reserva_id', (resData || []).map(r => r.id))
+    // Solo buscamos pagos si hay reservas para evitar el error 400
+    if (resData && resData.length > 0) {
+      const { data } = await supabase
+        .from('pagos')
+        .select('reserva_id, monto')
+        .eq('estado', 'completado')
+        .in('reserva_id', resData.map(r => r.id))
+      pagosData = data
+    }
 
     // Unir manualmente
     reports.value = (resData || []).map(res => ({
