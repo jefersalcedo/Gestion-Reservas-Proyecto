@@ -28,7 +28,7 @@ const fetchStats = async () => {
     // Fetch total users (profiles)
     try {
       const { count: usersCount, error: usersError } = await withTimeout(
-        supabase.from('profiles').select('*', { count: 'exact' }),
+        supabase.from('profiles').select('*', { count: 'exact' }).eq('role', 'creator'),
         5000
       ) as any;
       if (usersError) throw usersError
@@ -93,10 +93,6 @@ const handleLogout = async () => {
           <div class="stat-card">
             <span class="stat-label">Reservas Activas</span>
             <span class="stat-value">{{ activeReservations }}</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">Estado Sistema</span>
-            <span class="stat-value status-ok">Óptimo</span>
           </div>
         </div>
 
@@ -251,10 +247,10 @@ p {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 2rem;
-  margin: 0 auto 5rem;
-  max-width: 900px;
+  margin: 0 auto 3rem;
+  max-width: 1000px;
 }
 
 .stat-card {
@@ -295,7 +291,7 @@ p {
 }
 
 .admin-actions {
-  margin-top: 4rem;
+  margin-top: 1rem;
 }
 
 h3 {

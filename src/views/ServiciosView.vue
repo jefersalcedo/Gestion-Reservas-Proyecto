@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import { useServiciosStore } from '../stores/servicios'
 import type { Servicio } from '../services/servicios.service'
 import ServicioForm from '../components/ServicioForm.vue'
@@ -8,6 +9,7 @@ import PreciosServicio from '../components/PreciosServicio.vue'
 import { stripeService } from '../services/stripe.service'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const store = useServiciosStore()
 
 const handleBack = () => {
@@ -126,6 +128,7 @@ const handlePagar = async (servicio: Servicio) => {
               </td>
               <td class="actions-cell">
                 <button 
+                  v-if="authStore.role !== 'admin'"
                   @click="handlePagar(servicio)" 
                   class="btn-icon btn-pay" 
                   title="Pagar servicio"

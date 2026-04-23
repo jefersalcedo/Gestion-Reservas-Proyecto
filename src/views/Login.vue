@@ -87,7 +87,8 @@ const handleLogin = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 80vh;
+  min-height: 100vh;
+  padding: 2rem;
 }
 
 .auth-card {
@@ -103,11 +104,13 @@ const handleLogin = async () => {
 
 h1 {
   margin-bottom: 0.5rem;
-  font-size: 2.5rem;
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  font-size: 2.75rem;
+  background: linear-gradient(135deg, #D4AF37 0%, #E5D3B3 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  font-weight: 800;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
 }
 
 p {
@@ -140,19 +143,21 @@ input {
 
 input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  border-color: #D4AF37;
+  box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.1);
 }
 
 button {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.85rem;
   margin-top: 1rem;
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  background: linear-gradient(135deg, #D4AF37 0%, #E5D3B3 100%);
   border: none;
   border-radius: 0.75rem;
-  color: white;
-  font-weight: 600;
+  color: #0B0B0C;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   cursor: pointer;
   transition: transform 0.2s, opacity 0.2s;
 }
@@ -181,7 +186,7 @@ button:disabled {
 }
 
 .auth-footer a {
-  color: #6366f1;
+  color: #D4AF37;
   text-decoration: none;
   font-weight: 600;
 }

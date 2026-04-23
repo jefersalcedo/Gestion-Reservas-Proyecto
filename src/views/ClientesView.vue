@@ -119,8 +119,8 @@
           <!-- Stats Cards -->
           <div class="stats-row">
             <div class="mini-stat">
-              <span class="stat-label">Total</span>
-              <span class="stat-value">{{ clientHistory.length }}</span>
+              <span class="stat-label">Gasto Total</span>
+              <span class="stat-value text-primary">${{ totalSpent.toFixed(2) }}</span>
             </div>
             <div class="mini-stat">
               <span class="stat-label">Confirmadas</span>
@@ -144,22 +144,36 @@
                 <thead>
                   <tr>
                     <th>Servicio</th>
-                    <th>Fecha</th>
+                    <th>Fecha Reserva</th>
+                    <th>Precio</th>
                     <th>Estado</th>
+                    <th>Últ. Cambio</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="res in clientHistory" :key="res.id">
-                    <td>{{ res.servicios?.nombre }}</td>
+                    <td>
+                      <div class="service-cell">
+                        <span class="service-name-mini">{{ res.servicios?.nombre }}</span>
+                        <span class="time-text">{{ res.hora.substring(0, 5) }} hs</span>
+                      </div>
+                    </td>
                     <td>{{ formatDate(res.fecha) }}</td>
+                    <td class="price-cell">${{ (res.pagos?.[0]?.monto || 0).toFixed(2) }}</td>
                     <td>
                       <span :class="['status-badge-mini', res.estado]">
                         {{ res.estado.toUpperCase() }}
                       </span>
                     </td>
+                    <td class="update-cell">
+                      <span v-if="res.estado === 'cancelada' || res.estado === 'confirmada'">
+                        {{ formatDate(res.updated_at.split('T')[0]) }}
+                      </span>
+                      <span v-else class="text-muted">-</span>
+                    </td>
                   </tr>
                   <tr v-if="!clientHistory.length">
-                    <td colspan="3" class="empty-history">No hay registros de reservas.</td>
+                    <td colspan="5" class="empty-history">No hay registros de reservas.</td>
                   </tr>
                 </tbody>
               </table>
@@ -241,26 +255,45 @@ const confirmedCount = computed(() => clientHistory.value.filter(r => r.estado =
 const pendingCount = computed(() => clientHistory.value.filter(r => r.estado === 'pendiente').length)
 const cancelledCount = computed(() => clientHistory.value.filter(r => r.estado === 'cancelada').length)
 
+const totalSpent = computed(() => {
+  return clientHistory.value
+    .filter(r => r.estado === 'confirmada')
+    .reduce((acc, r) => acc + (r.pagos?.[0]?.monto || 0), 0)
+})
+
 async function openDetailModal(cliente: Cliente) {
   selectedCliente.value = cliente
   showDetailModal.value = true
   loadingHistory.value = true
   
   try {
-    const { data, error } = await supabase
+    const { data: resData, error: resError } = await supabase
       .from('reservas')
       .select(`
         id,
         fecha,
         hora,
         estado,
+        updated_at,
         servicios (nombre)
       `)
       .eq('usuario_id', cliente.id)
       .order('fecha', { ascending: false })
 
-    if (error) throw error
-    clientHistory.value = data || []
+    if (resError) throw resError
+
+    // Intentar traer los pagos por separado para evitar el error de relación
+    const { data: pagosData } = await supabase
+      .from('pagos')
+      .select('reserva_id, monto')
+      .eq('estado', 'completado')
+      .in('reserva_id', resData.map(r => r.id))
+
+    // Unir manualmente
+    clientHistory.value = resData.map(res => ({
+      ...res,
+      pagos: pagosData?.filter(p => p.reserva_id === res.id) || []
+    }))
   } catch (err) {
     console.error('Error fetching client history:', err)
   } finally {
@@ -764,5 +797,31 @@ async function confirmDelete(cliente: Cliente) {
 .text-success { color: var(--success) !important; }
 .text-warning { color: var(--primary) !important; }
 .text-error { color: var(--error) !important; }
+.text-primary { color: var(--primary) !important; }
+
+.service-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.service-name-mini {
+  font-weight: 700;
+  color: var(--ivory);
+}
+
+.time-text {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.price-cell {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.update-cell {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
 
 </style>
