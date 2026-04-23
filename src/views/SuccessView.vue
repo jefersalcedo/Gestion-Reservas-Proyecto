@@ -7,9 +7,9 @@ const route = useRoute()
 const sessionId = ref(route.query.session_id)
 
 onMounted(() => {
-  // Redirigir automáticamente después de 5 segundos
+  // Redirigir automáticamente al Dashboard después de 5 segundos
   setTimeout(() => {
-    router.push('/mis-reservas')
+    router.replace('/dashboard-user')
   }, 5000)
 })
 </script>
@@ -25,10 +25,10 @@ onMounted(() => {
       <div class="details" v-if="sessionId">
         <small>ID de Sesión: {{ sessionId.toString().slice(0, 20) }}...</small>
       </div>
-      <button @click="router.push('/mis-reservas')" class="btn-primary">
-        Volver a Mis Reservas
+      <button @click="router.replace('/dashboard-user')" class="btn-primary">
+        Ir al Panel Principal
       </button>
-      <p class="auto-redirect">Redirigiendo automáticamente en unos segundos...</p>
+      <p class="auto-redirect">Redirigiendo al panel principal en unos segundos...</p>
     </div>
   </div>
 </template>
